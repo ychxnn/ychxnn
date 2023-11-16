@@ -87,7 +87,7 @@ class Embedding(nn.Embedding, LoRALayer):
             return nn.Embedding.forward(self, x)
             
 
-class Linear(nn.Linear, LoRALayer):
+class Linear(nn.Linear, LoRALayer): // pytorch의 nn.Linear를 상속받은 새로운 Linear class // LoRALayer 는 initializer일 뿐 큰 역할은 없음 
     # LoRA implemented in a dense layer
     def __init__(
         self, 
@@ -105,10 +105,10 @@ class Linear(nn.Linear, LoRALayer):
                            merge_weights=merge_weights)
 
         self.fan_in_fan_out = fan_in_fan_out
-        # Actual trainable parameters
+        # Actual trainable parameters // 중요: LoRA A와 LoRA B의 matrix를 생
         if r > 0:
-            self.lora_A = nn.Parameter(self.weight.new_zeros((r, in_features)))
-            self.lora_B = nn.Parameter(self.weight.new_zeros((out_features, r)))
+            self.lora_A = nn.Parameter(self.weight.new_zeros((r, in_features))) // in_feature 에서 r차원으로 down projection  
+            self.lora_B = nn.Parameter(self.weight.new_zeros((out_features, r))) // r차원에서 원래의 out_feature로 reconstruction
             self.scaling = self.lora_alpha / self.r
             # Freezing the pre-trained weight matrix
             self.weight.requires_grad = False
@@ -116,13 +116,13 @@ class Linear(nn.Linear, LoRALayer):
         if fan_in_fan_out:
             self.weight.data = self.weight.data.transpose(0, 1)
 
-    def reset_parameters(self):
+    def reset_parameters(self): // initialization!! : 논문에서 A는 Gaussean, B는 zero로 initialize
         nn.Linear.reset_parameters(self)
         if hasattr(self, 'lora_A'):
             # initialize B the same way as the default for nn.Linear and A to zero
             # this is different than what is described in the paper but should not affect performance
-            nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
-            nn.init.zeros_(self.lora_B)
+            nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5)) // 논문에서 A는 Gaussean으로 initialize했다고 하지만 코드에서는 kaiming uniform으로 구현되어 있
+            nn.init.zeros_(self.lora_B) // B matrix는 0 행렬로 initialize => 시작은 0 행렬 
 
     def train(self, mode: bool = True):
         def T(w):
