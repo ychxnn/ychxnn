@@ -114,7 +114,7 @@ class Linear(nn.Linear, LoRALayer): // pytorch의 nn.Linear를 상속받은 새�
             self.weight.requires_grad = False
         self.reset_parameters()
         if fan_in_fan_out:
-            self.weight.data = self.weight.data.transpose(0, 1)
+            self.weight.data = self.weight.data.transpose(0, 1) // fan_in_fan_out이 true면 weight에 transpose 
 
     def reset_parameters(self): // initialization!! : 논문에서 A는 Gaussean, B는 zero로 initialize
         nn.Linear.reset_parameters(self)
@@ -232,7 +232,7 @@ class MergedLinear(nn.Linear, LoRALayer):
                     self.weight.data += self.merge_AB() * self.scaling
                 self.merged = True        
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor): // LoRA 학습법 코드 
         def T(w):
             return w.transpose(0, 1) if self.fan_in_fan_out else w
         if self.merged:
